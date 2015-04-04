@@ -25,6 +25,18 @@
 apply plugin: 'eclipse'
 apply plugin: 'groovy'
 
+String libraryExtension;
+switch(System.getProperty('os.name').toLowerCase().split()[0]) {
+  case 'linux':
+    libraryExtension = 'so'
+    break
+  case 'mac':
+    libraryExtension = 'dylib'
+    break
+  default:
+    throw new Exception('Unsupported OS')
+}
+
 repositories {
 	flatDir {
 		dirs 'lib'
@@ -70,7 +82,7 @@ task runManualJNA(dependsOn: 'buildLibrary', type: JavaExec) {
 	// Set classpath for running the Groovy script.
 	classpath = sourceSets.main.runtimeClasspath
 	
-	systemProperty 'nativegroovy.library.path', projectDir.getCanonicalPath() + '/libnativegroovy.so'
+	systemProperty 'nativegroovy.library.path', projectDir.getCanonicalPath() + '/libnativegroovy.' + libraryExtension
 	//Necessary in case the host system has a mismatched version
 	//of libjnispatch.so - not having this arg results in a
 	//"java.lang.UnsatisfiedLinkError: Can't obtain updateLastError method"

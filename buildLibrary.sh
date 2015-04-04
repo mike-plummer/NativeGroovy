@@ -26,6 +26,13 @@
 # Find the directory this script lives in
 SCRIPT_DIR=`dirname "$BASH_SOURCE"`
 
+if [ `uname` != 'Darwin' ]
+then
+    LIBRARY_EXTENSION="so"
+else
+    LIBRARY_EXTENSION="dylib"
+fi
+
 # Compile our simple C function
 #  -c      Compile but do not link
 #  -Wall   Turn on additional warnings
@@ -34,7 +41,7 @@ SCRIPT_DIR=`dirname "$BASH_SOURCE"`
 gcc -c -Wall -Werror -fpic "$SCRIPT_DIR"/src/main/c/nativegroovy.c -o "$SCRIPT_DIR"/src/main/c/nativegroovy.o
 
 # Generate the shared library using the output from the first compile
-gcc -shared -o "$SCRIPT_DIR"/libnativegroovy.so "$SCRIPT_DIR"/src/main/c/nativegroovy.o
+gcc -shared -o "$SCRIPT_DIR"/libnativegroovy."$LIBRARY_EXTENSION" "$SCRIPT_DIR"/src/main/c/nativegroovy.o
 
 # Cleanup the intermediate .o artifact
 rm "$SCRIPT_DIR"/src/main/c/nativegroovy.o
