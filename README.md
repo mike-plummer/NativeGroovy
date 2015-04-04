@@ -3,7 +3,7 @@ Examples of several methods to execute native code from Groovy
 
 Setup
 ---------------
-All code and scripts were developed on an 64-bit Ubuntu 14.04 platform and has been verified to also work on a Mac OSX 10.10.2 system. Other OS/Hardware combos may require modifications.
+All code and scripts were developed on an 64-bit Ubuntu 14.04 platform and has been verified to also work on a Mac OSX 10.10.2 system. Other OS/Hardware combos may require modifications. Note that the file 'buildLibrary.sh' requires execute permissions - you may have to manually add this using chmod depending on your setup.
 
 Execution
 ---------------
