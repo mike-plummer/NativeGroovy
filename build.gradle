@@ -1,0 +1,108 @@
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Mike Plummer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+apply plugin: 'eclipse'
+apply plugin: 'groovy'
+
+repositories {
+	flatDir {
+		dirs 'lib'
+	}
+    mavenCentral()
+}
+
+dependencies {
+	//'net.java.dev.jna:jna:4.1.0',
+	compile localGroovy(), 'com.nativelibs4java:bridj:0.7.0', 'com.nativelibs4java:jnaerator:0.12'
+	compile name: 'nativegroovybindings'
+}
+
+task buildLibrary(type: Exec) {
+	description 'Execute a shell script that compiles the Native Library used in these examples'
+	executable "./buildLibrary.sh"
+}
+
+task nativegroovybindings(dependsOn: 'buildLibrary', type: JavaExec) {
+	
+	//Determine whether to build JNA or BridJ bindings based on what Gradle task was specified
+	def mode = 'BridJ'
+	if( project.gradle.startParameter.taskNames[0]?.endsWith('JNA') ) {
+		mode = 'JNA'
+	}
+	
+	description 'Execute JNAerator to auto-generate JNA or BridJ bindings'
+	// Set main property to name of Groovy script class.
+	main = 'com.ochafik.lang.jnaerator.JNAerator'
+	args  '-mode', 'Jar',	//Specify we want a single output JAR file we can interface with
+		   '-jar', 'lib/nativegroovybindings.jar',	//Name the output jar
+		   '-runtime', mode,	//Specify whether we want JNA or BridJ bindings
+		   '-library', 'nativegroovy',	//Specify the name of the native library (optional)
+		   'src/main/c/nativegroovy.h'	//Provide the native library's header file
+	
+	classpath = sourceSets.main.runtimeClasspath
+}
+
+task runManualJNA(dependsOn: 'buildLibrary', type: JavaExec) {
+	description 'Run Groovy script that interfaces with native library manually via JNA'
+	// Set main property to name of Groovy script class.
+	main = 'com.objectpartners.plummer.nativegroovy.jna.NativeGroovyManualJNA'
+	// Set classpath for running the Groovy script.
+	classpath = sourceSets.main.runtimeClasspath
+	
+	systemProperty 'nativegroovy.library.path', projectDir.getCanonicalPath() + '/libnativegroovy.so'
+	//Necessary in case the host system has a mismatched version
+	//of libjnispatch.so - not having this arg results in a
+	//"java.lang.UnsatisfiedLinkError: Can't obtain updateLastError method"
+	//error
+	systemProperty 'jna.nosys', 'true'
+}
+
+task runBoundJNA(dependsOn: 'nativegroovybindings', type: JavaExec) {
+	
+	description 'Run Groovy script that interfaces with native library via auto-generated JNA bindings'
+	// Set main property to name of Groovy script class.
+	main = 'com.objectpartners.plummer.nativegroovy.jnaerator.NativeGroovyAutoBound'
+	classpath = sourceSets.main.runtimeClasspath
+	
+	systemProperty 'jna.library.path', projectDir.getCanonicalPath()
+	//Necessary in case the host system has a mismatched version
+	//of libjnispatch.so - not having this arg results in a
+	//"java.lang.UnsatisfiedLinkError: Can't obtain updateLastError method"
+	//error
+	systemProperty 'jna.nosys', 'true'
+}
+
+task runBoundBridJ(dependsOn: 'nativegroovybindings', type: JavaExec) {
+	
+	description 'Run Groovy script that interfaces with native library via auto-generated BridJ bindings'
+	// Set main property to name of Groovy script class.
+	main = 'com.objectpartners.plummer.nativegroovy.jnaerator.NativeGroovyAutoBound'
+	// Set classpath for running the Groovy script.
+	classpath = sourceSets.main.runtimeClasspath
+}
+
+runManualJNA.shouldRunAfter nativegroovybindings
+runBoundJNA.shouldRunAfter nativegroovybindings
+runBoundBridJ.shouldRunAfter nativegroovybindings
+compileGroovy.shouldRunAfter nativegroovybindings
